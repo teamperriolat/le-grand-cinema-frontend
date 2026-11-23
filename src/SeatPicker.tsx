@@ -20,6 +20,7 @@ export default function SeatPicker({
   const [selected, setSelected] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [isReserving, setIsReserving] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
   const [ticket, setTicket] = useState<Reservation | null>(null);
 
   useEffect(() => {
@@ -54,6 +55,24 @@ export default function SeatPicker({
       setError((caughtError as Error).message);
     } finally {
       setIsReserving(false);
+    }
+  }
+
+  async function pay() {
+    if (!ticket) return;
+    setError("");
+    setIsPaying(true);
+    try {
+      await api(`/reservations/${ticket.id}/payment`, { method: "POST" });
+      setTicket({
+        ...ticket,
+        paymentStatus: "PAID",
+        ticketStatus: "ACTIVE",
+      });
+    } catch (caughtError) {
+      setError((caughtError as Error).message);
+    } finally {
+      setIsPaying(false);
     }
   }
 
@@ -203,13 +222,36 @@ export default function SeatPicker({
                 </div>
               </dl>
               <p className="ticket-code">Billet nº {ticket.ticketCode}</p>
+              <p>
+                Paiement : {ticket.paymentStatus === "PAID" ? "payé" : "en attente"}
+              </p>
             </div>
-            <div className="qr-code" aria-label="QR code du billet">
-              <QRCodeSVG value={qrValue} size={164} level="M" includeMargin />
-              <span>Présentez ce code à l’entrée</span>
-            </div>
+            {ticket.paymentStatus === "PAID" ? (
+              <div className="qr-code" aria-label="QR code du billet">
+                <QRCodeSVG value={qrValue} size={164} level="M" includeMargin />
+                <span>Présentez ce code à l’entrée</span>
+              </div>
+            ) : (
+              <div className="qr-code">
+                <strong>Billet en attente</strong>
+                <span>Le QR code sera activé après le paiement.</span>
+              </div>
+            )}
           </div>
+          {error && <p className="alert" role="alert">{error}</p>}
           <div className="ticket-actions">
+            {ticket.paymentStatus !== "PAID" && (
+              <button
+                className="button button-primary"
+                type="button"
+                disabled={isPaying}
+                onClick={pay}
+              >
+                {isPaying
+                  ? "Paiement…"
+                  : `Payer ${(ticket.totalCents / 100).toFixed(2)} €`}
+              </button>
+            )}
             <button
               className="button button-ghost"
               type="button"
