@@ -31,6 +31,8 @@ export interface Reservation {
   ticketCode: string;
   totalCents: number;
   status: string;
+  paymentStatus: "PENDING" | "PAID" | "REFUSED" | "REFUNDED";
+  ticketStatus: "PENDING_PAYMENT" | "ACTIVE" | "USED" | "CANCELLED";
   seats: { seat: Seat }[];
   screening: Screening & { movie: Movie };
 }
